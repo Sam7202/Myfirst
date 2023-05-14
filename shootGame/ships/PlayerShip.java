@@ -39,12 +39,12 @@ public class PlayerShip extends Ship {
 				laserTextureRegion);
 		lives = 3;
 		SHIELD_DOWN_SOUND = Gdx.audio.newSound(Gdx.files.internal("sfx_shieldDown.ogg"));
-		
+
 		hurt = new Texture(Gdx.files.internal("hurt.jpg"));
-		
+
 		lowLifeTexture = new Texture(Gdx.files.internal("low life effect.png"));
 		lowLifeEffect = new LowLifeEffect(lowLifeTexture);
-		
+
 	}
 
 
@@ -54,8 +54,15 @@ public class PlayerShip extends Ship {
 		super.update(deltaTime);
 	}
 	public void updateLowLife(float deltaTime,Batch batch) {
-//		super.update(deltaTime);
-		lowLifeEffect.draw(batch);
+		if(lives == 1) {
+//			lowLife = true;
+			lowLifeEffect.play();
+			lowLifeEffect.draw(batch);
+		}
+		else {
+//			lowLife = false;
+			lowLifeEffect.stop();
+		}
 	}
 	@Override
 	public void hit(Laser laser, Batch batch) {
@@ -63,28 +70,21 @@ public class PlayerShip extends Ship {
 			shield--;
 			if(shield == 0) {
 				SHIELD_DOWN_SOUND.play(0.4f);
-				//				shiledDownSound.setLooping(id, false);
 			}
 		}
 		else {
 
 			if(lives > 1) {
 				lives--;
-				if(lives == 1) {
-					lowLife = true;
-					lowLifeEffect.play();
-				}
-				drawHurt(batch);
+				//draw hurt
+				batch.draw(hurt, 0, 0, GameScreen.WORLD_WIDTH, GameScreen.WORLD_HEIGHT);
 			}
 			else {
 				lives = 0;
 				destroyed = true;
-				lowLifeEffect.stop();
 			}
 		}
-	}
-	public void drawHurt(Batch batch) {
-		batch.draw(hurt, 0, 0, GameScreen.WORLD_WIDTH, GameScreen.WORLD_HEIGHT);
+
 	}
 	@Override
 	public Laser[] fireLasers() {

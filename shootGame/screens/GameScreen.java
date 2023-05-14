@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Locale;
+import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -24,6 +25,10 @@ import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygdx.game.ShootGame;
 
+import Buffs.Buffs;
+import Buffs.LiveUpBuff;
+import Buffs.PowerUpBuff;
+import Buffs.ShieldUpBuff;
 import ships.EnemyShips;
 import effects.Explosion;
 import effects.HitEffect;
@@ -38,7 +43,6 @@ public class GameScreen  implements Screen {
 
 
 	//graphics
-	//	private game.batch game.batch;
 	private TextureRegion[] backgrounds ;
 	private TextureAtlas textureAtlas;
 	private final float PRESERVED_PIXEL = 0.5f;
@@ -49,6 +53,11 @@ public class GameScreen  implements Screen {
 	private Texture playerhitEffectTexture;
 	private Texture explosionTexture;
 	private Texture boss;
+	
+	//buffs Texture && parameters
+	private Texture shieldUpTexture = new Texture(Gdx.files.internal("buffs/shield_silver.png"));
+	private Texture powerUpTexture = new Texture(Gdx.files.internal("buffs/bolt_gold.png"));
+	private Texture liveUpTexture = new Texture(Gdx.files.internal("buffs/pill_red.png"));
 
 	//timing
 	private float[] backgroundOffsets = {0,0,0,0};
@@ -74,6 +83,8 @@ public class GameScreen  implements Screen {
 	private LinkedList<HitEffect> enemyHitEffectList;
 	private LinkedList<Explosion> explosionList;
 	private LinkedList<Explosion> playerExplosionList;
+	private LinkedList<Buffs> buffList;
+	
 
 	//audio
 	Music backgroundMusic;
@@ -117,11 +128,17 @@ public class GameScreen  implements Screen {
 				new Texture(Gdx.files.internal("laserRed11.png"));
 		//		boss = new Texture("big boss.png");
 		//		enemyShipTextureRegion = new TextureRegion(boss);
-
+		shieldUpTexture = new Texture(Gdx.files.internal("buffs/shield_silver.png"));
+		powerUpTexture = new Texture(Gdx.files.internal("buffs/bolt_gold.png"));
+		liveUpTexture = new Texture(Gdx.files.internal("buffs/pill_red.png"));
+		
 		//set up game object
 		playerShip = new PlayerShip(50, 3, WORLD_WIDTH/2, WORLD_HEIGHT/4, 10, 10,
 				0.8f, 4, 60, 0.3f,
 				playerShipTextureRegion, playerSheildTextureRegion, playerLaserTextureRegion);
+		explosionTexture = new Texture("explosion.png");
+		
+		//set up list
 		playerLaserList = new LinkedList<>();
 		playerHitEffectList = new LinkedList<>();
 
@@ -129,11 +146,11 @@ public class GameScreen  implements Screen {
 		enemyLaserList = new LinkedList<>();
 		enemyHitEffectList = new LinkedList<>();
 
-		explosionTexture = new Texture("explosion.png");
 		explosionList = new LinkedList<>();
 		playerExplosionList = new LinkedList<>();
-
-
+		
+		buffList = new LinkedList<>();
+		
 		prepareHUD();
 		
 		//set up audio
@@ -235,15 +252,46 @@ public class GameScreen  implements Screen {
 
 			//detect collisions between lasers and ships
 			detectCollisions();
+			
+			detectBuffs(deltaTime);
 
 		}
 		game.batch.end();
 	}
 
-	private void renderlowLifeEffects(float deltaTime) {
-		if(playerShip.lowLife) {
-			playerShip.updateLowLife(deltaTime, game.batch);
+	private void detectBuffs(float deltaTime) {
+		Iterator<Buffs> iterator = buffList.iterator();
+		while(iterator.hasNext()) {
+			Buffs buff = iterator.next();
+			if(buff.contactWithPlayerShip(playerShip.shipBoundingBox)) {
+				//see which buff player gets
+				if(buff instanceof ShieldUpBuff) {
+					ShieldUpBuff a = (ShieldUpBuff) buff;
+					a.buffUp(playerShip);
+				}
+				else if(buff instanceof LiveUpBuff) {
+					LiveUpBuff a = (LiveUpBuff) buff;
+					a.buffUp(playerShip);
+				}
+				else if(buff instanceof PowerUpBuff) {
+					PowerUpBuff a = (PowerUpBuff) buff;
+					a.buffUp(playerShip);
+				}
+				iterator.remove();
+			}
+			buff.drawBuff(game.batch);
+			buff.updateBuff(deltaTime);
+			//delete old buffs
+			if(buff.yPosition + buff.buffHeight <= -3)
+				iterator.remove();
+			
 		}
+	}
+	private void renderlowLifeEffects(float deltaTime) {
+		
+//		if(playerShip.lowLife) {
+			playerShip.updateLowLife(deltaTime, game.batch);
+//		}
 	}
 	private void renderHitEffects(float deltaTime) {
 		Iterator<HitEffect> iterator = playerHitEffectList.iterator();
@@ -381,13 +429,16 @@ public class GameScreen  implements Screen {
 							5, 5, playerhitEffectTexture));
 					enemyShipList.get(i).hit(laser , game.batch );
 					if(enemyShipList.get(i).destroyed == true) {
+						//add explosion effects
 						explosionList.add(new Explosion(explosionTexture,
 								enemyShipList.get(i).xPosition,
 								enemyShipList.get(i).yPosition,
 								enemyShipList.get(i).width,
 								enemyShipList.get(i).height,
 								0.5f));
-
+						//add buffs
+						addBuffs(enemyShipList.get(i));
+						
 						enemyShipList.remove(i);
 						i--;
 						//add score when enemy are destroyed
@@ -425,6 +476,27 @@ public class GameScreen  implements Screen {
 			}
 		}
 
+	}
+	private void addBuffs(EnemyShips enemyShip) {
+		Random r = new Random();
+		switch(r.nextInt(4)) {
+		
+		case 1:
+			buffList.add(new ShieldUpBuff(30,enemyShip.xPosition, enemyShip.yPosition
+			, shieldUpTexture));
+			break;
+		case 2:
+			buffList.add(new LiveUpBuff(30,enemyShip.xPosition, enemyShip.yPosition
+					, liveUpTexture));
+			break;
+		case 3:
+			buffList.add(new PowerUpBuff(30,enemyShip.xPosition, enemyShip.yPosition
+					, powerUpTexture));
+			break;
+			
+			
+		}
+		
 	}
 	private void renderExplosions(float deltaTime) {
 		ListIterator<Explosion> explosionIterator = explosionList.listIterator();
@@ -533,6 +605,8 @@ public class GameScreen  implements Screen {
 		Explosion.EXPLOSION_SOUND.dispose();
 		PlayerShip.SHIELD_DOWN_SOUND.dispose();
 		HitEffect.HIT_SOUND.dispose();
+		ShieldUpBuff.SHIELDUP_SOUND.dispose();
+		
 		
 		explosionTexture.dispose();
 		font.dispose();

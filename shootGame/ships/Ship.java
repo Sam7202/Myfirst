@@ -13,12 +13,12 @@ public abstract class Ship {
 	public float xPosition, yPosition ;//lower left = (0,0)
 	public float width, height;
 
-	Rectangle shipBoundingBox;
+	public Rectangle shipBoundingBox;
 	
 	//laser information
 	float laserWidth, laserHeight;
 	float laserMovementSpeed;
-	float timeBetweenShots;
+	public float timeBetweenShots;
 	float timeSinceLastShot = 0;
 	
 	
@@ -59,7 +59,7 @@ public abstract class Ship {
 	}
 	public void update(float deltaTime) {
 		timeSinceLastShot += deltaTime;
-		
+		this.shipBoundingBox.set(xPosition, yPosition, width, height);
 	}
 	
 	public boolean canFireLaser() {

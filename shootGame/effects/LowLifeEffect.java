@@ -1,6 +1,9 @@
 package effects;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.loaders.MusicLoader;
+import com.badlogic.gdx.assets.loaders.SoundLoader;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -15,12 +18,12 @@ public class LowLifeEffect {
 	float increasingSpeed = (1f/60f) / 1.5f;
 	
 	//audio
-	public static Sound LOW_LIVES_ALARM ;
+	public static Music LOW_LIVES_ALARM ;
 
 	public LowLifeEffect(Texture lowLifetexture) {
 		super();
 		this.lowLifetexture = lowLifetexture;
-		LOW_LIVES_ALARM = Gdx.audio.newSound(Gdx.files.internal("low life alarm.mp3"));
+		LOW_LIVES_ALARM = Gdx.audio.newMusic(Gdx.files.internal("low life alarm.mp3"));
 	}
 	public void draw(Batch batch) {
 		//fading red border
@@ -41,7 +44,8 @@ public class LowLifeEffect {
 		LOW_LIVES_ALARM.stop();
 	}
 	public void play() {
-		LOW_LIVES_ALARM.loop(2f);
+		if(!LOW_LIVES_ALARM.isPlaying())
+			LOW_LIVES_ALARM.play();
 	}
 	
 	
